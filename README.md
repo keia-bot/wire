@@ -78,7 +78,7 @@ object MyCommand : Command.Single() {
 Wire has a very simple parameter api that allows for them to be easily shared between interactions and messages.
 
 ```kt
-object MyCommand : Command.Single() {
+object MyCommand : Command.Single("my-command") {
   enum class Fizz {
     Fizz,
     Buzz,
@@ -112,9 +112,18 @@ object MyCommand : Command.Single() {
   override val parameters get() = setOf(P_MESSAGE, P_QUOTED, P_FOOBAR, P_FIZZ_BUZZ)
 
   override suspend fun execute(ctx: FinalCommandContext) {
-    val quoted = ctx.args[P_QUOTED] ?: false
     val message = ctx.args[P_MESSAGE]
-    ctx.respondEmbed(if (quoted) "'$message'" else message)
+
+    // CommandContext#ta automatically prepends the translation path for this command to
+    // the specifier you provide use Context#t if you need absolute specifiers.
+    val translated = ctx.ta(
+        "response", // commands.my-command.response
+        "message" to if (ctx.args[P_QUOTED] == true) "'$message'" else message,
+        "fizz" to ctx.args[P_FIZZ_BUZZ].name,
+        "foo" to ctx.args[P_FOOBAR]
+    )
+
+    ctx.respondEmbed(translated)
   }
 }
 ```
